@@ -50,8 +50,34 @@ async (req, res)=>{
 // @route   PUt    api/contacts/:id
 // @desc    Update contact
 // @access  Private
-router.put('/:id', (req, res)=>{
-    res.send('Update a contact');
+router.put('/:id', auth, async (req, res)=>{
+    const { name, email, phone, type } = req.body;
+
+    // Build contact object
+    const contactFields = {};
+    contactFields.name = name;
+    contactFields.email = email;
+    contactFields.phone = phone;
+    contactFields.type = type;
+
+    try {
+        let contact = await Contact.findById(req.params.id);
+        
+        if(!contact) return res.status(404).json({ msg: "Contact not found"});
+
+        // Make sure user owns contact
+        if (contact.user.toString() !== req.user.id) {
+            return res.status(401).json({ msg: "Operation not authorize"});  
+        }
+
+        contact = await Contact.findByIdAndUpdate(req.params.id, { $set: contactFields }, { new: true });
+
+        res.json(contact);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+4
 });
 
 // @route   DELETE    api/contacts/:id
